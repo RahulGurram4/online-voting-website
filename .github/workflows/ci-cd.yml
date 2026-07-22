@@ -33,7 +33,10 @@ jobs:
       - name: Run JavaScript Check
         run: npm run lint:js
 
-      - name: Run Tests
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright Tests
         run: npm test
 
       - name: Configure AWS Credentials
