@@ -54,7 +54,7 @@ jobs:
         run: |
           docker build -t online-voting-app:${{ github.sha }} .
           docker tag online-voting-app:${{ github.sha }} \
-          787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+            787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
 
       - name: Push Docker Image
         run: |
@@ -69,16 +69,29 @@ jobs:
           script: |
             set -e
 
+            ECR_REGISTRY="787309524539.dkr.ecr.ap-southeast-2.amazonaws.com"
+            ECR_REPO="$ECR_REGISTRY/online-voting-app"
+            NEW_IMAGE="$ECR_REPO:${{ github.sha }}"
+
             echo "Logging into Amazon ECR..."
-            aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com
+            aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-            echo "Pulling latest Docker image..."
-            docker pull 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+            echo "Saving current running image..."
+            OLD_IMAGE=$(docker inspect online-voting --format='{{.Config.Image}}' 2>/dev/null || true)
 
-            echo "Stopping existing container..."
+            if [ -n "$OLD_IMAGE" ]; then
+              echo "Current image: $OLD_IMAGE"
+            else
+              echo "No existing container found."
+            fi
+
+            echo "Pulling new Docker image..."
+            docker pull $NEW_IMAGE
+
+            echo "Stopping old container..."
             docker stop online-voting || true
 
-            echo "Removing existing container..."
+            echo "Removing old container..."
             docker rm online-voting || true
 
             echo "Starting new container..."
@@ -86,12 +99,34 @@ jobs:
               --name online-voting \
               -p 80:80 \
               --restart unless-stopped \
-              787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+              $NEW_IMAGE
 
             echo "Waiting for application to start..."
             sleep 15
 
             echo "Running Health Check..."
-            curl -f http://localhost
 
-            echo "Health Check Passed Successfully!"
+            if curl -f http://localhost; then
+              echo "Health Check Passed"
+              echo "Deployment Successful"
+            else
+              echo "Health Check Failed"
+              echo "Rolling back to previous version..."
+
+              docker stop online-voting || true
+              docker rm online-voting || true
+
+              if [ -n "$OLD_IMAGE" ]; then
+                docker run -d \
+                  --name online-voting \
+                  -p 80:80 \
+                  --restart unless-stopped \
+                  $OLD_IMAGE
+
+                echo "Rollback completed successfully."
+              else
+                echo "No previous image available for rollback."
+              fi
+
+              exit 1
+            fi
