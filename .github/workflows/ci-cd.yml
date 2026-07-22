@@ -22,7 +22,7 @@ jobs:
           node-version: 20
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run HTML Check
         run: npm run lint:html
@@ -67,15 +67,31 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            set -e
+
+            echo "Logging into Amazon ECR..."
             aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com
 
+            echo "Pulling latest Docker image..."
             docker pull 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
 
+            echo "Stopping existing container..."
             docker stop online-voting || true
+
+            echo "Removing existing container..."
             docker rm online-voting || true
 
+            echo "Starting new container..."
             docker run -d \
               --name online-voting \
               -p 80:80 \
               --restart unless-stopped \
               787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+
+            echo "Waiting for application to start..."
+            sleep 15
+
+            echo "Running Health Check..."
+            curl -f http://localhost
+
+            echo "Health Check Passed Successfully!"
