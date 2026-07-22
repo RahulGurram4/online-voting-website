@@ -1,0 +1,32 @@
+{
+  "name": "online-voting-app",
+  "version": "1.0.0",
+  "description": "A fully static, self-contained online voting web application built with plain HTML, CSS, and ES6 JavaScript.",
+  "main": "script.js",
+  "scripts": {
+    "lint:html": "htmlhint index.html",
+    "lint:css": "stylelint \"**/*.css\"",
+    "lint:js": "eslint .",
+    "lint": "npm run lint:html && npm run lint:css && npm run lint:js",
+    "test": "playwright test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RahulGurram4/online-voting-website.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/RahulGurram4/online-voting-website/issues"
+  },
+  "homepage": "https://github.com/RahulGurram4/online-voting-website#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "eslint": "^10.7.0",
+    "htmlhint": "^1.9.2",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0"
+  }
+}

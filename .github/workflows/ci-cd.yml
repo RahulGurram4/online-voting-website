@@ -1,0 +1,78 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+
+jobs:
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Run HTML Check
+        run: npm run lint:html
+
+      - name: Run CSS Check
+        run: npm run lint:css || true
+
+      - name: Run JavaScript Check
+        run: npm run lint:js
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-southeast-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker Image
+        run: |
+          docker build -t online-voting-app:${{ github.sha }} .
+          docker tag online-voting-app:${{ github.sha }} \
+          787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+
+      - name: Push Docker Image
+        run: |
+          docker push 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com
+
+            docker pull 787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
+
+            docker stop online-voting || true
+            docker rm online-voting || true
+
+            docker run -d \
+              --name online-voting \
+              -p 80:80 \
+              --restart unless-stopped \
+              787309524539.dkr.ecr.ap-southeast-2.amazonaws.com/online-voting-app:${{ github.sha }}
