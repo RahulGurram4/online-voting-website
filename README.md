@@ -2,7 +2,7 @@
 
 A fully static, self-contained online voting web application built with plain HTML, CSS, and ES6 JavaScript.
 
-## Features
+## Featuress
 
 - Responsive modern UI with card-based layout
 - Voting form with required fields

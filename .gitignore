@@ -1,10 +1,5 @@
-# OS files
-.DS_Store
-Thumbs.db
-
-# Editor folders
-.vscode/
-.idea/
-
-# Logs
-*.log
+node_modules/
+coverage/
+playwright-report/
+test-results/
+.env
