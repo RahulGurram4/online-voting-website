@@ -25,6 +25,7 @@ A fully static, self-contained online voting web application built with plain HT
 ## Project Structure
 
 ```text
+
 online-voting-app/
 ├── .gitignore
 ├── index.html
