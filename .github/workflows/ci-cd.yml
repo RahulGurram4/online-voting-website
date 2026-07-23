@@ -106,7 +106,7 @@ jobs:
 
             echo "Running Health Check..."
 
-            if curl -f http://localhost; then
+            if curl -f http://localhost/health; then
               echo "Health Check Passed"
               echo "Deployment Successful"
             else
